@@ -21,7 +21,35 @@ generate_poisson_samples <- function(df) {
   return(result_df)
 }
 
-# Example data frame (simulating your filtered_df)
+
+
+# Generate Poisson samples for each data point in the data frame
+poisson_samples_df <- generate_poisson_samples(filtered_df)
+
+# Print the original data frame and the resulting samples
+print("Original Data Frame:")
+print(filtered_df)
+print("Poisson Samples Data Frame:")
+print(poisson_samples_df)
+
+
+
+Mder<-poisson_samples_df$CG3 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Example data frame (simulating your filtered_df), use data frame from the project code though
 filtered_df <- tibble(
   ...1 = c("A0A087WZY1", "A0A1B0GU03", "ACTB", "ALB", "AMY1A", "AZGP1", "B2M", "BASP1", "CRISP3", "CST3"),
   CG1 = c(152, 13, 196, 445, 2059, 292, 35, 16, 152, 64),
@@ -37,11 +65,4 @@ filtered_df <- tibble(
   CG11 = c(224, 3, 224, 1141, 3379, 118, 0, 38, 21, 30)
 )
 
-# Generate Poisson samples for each data point in the data frame
-poisson_samples_df <- generate_poisson_samples(filtered_df)
 
-# Print the original data frame and the resulting samples
-print("Original Data Frame:")
-print(filtered_df)
-print("Poisson Samples Data Frame:")
-print(poisson_samples_df)
