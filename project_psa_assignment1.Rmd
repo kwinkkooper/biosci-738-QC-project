@@ -1,0 +1,257 @@
+---
+title: "project part 1"
+author: "Quinn Cooper"
+date: "2024-03-29"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+
+
+
+
+```{r}
+library(readr)
+
+df <- read_csv("projectdata.csv")
+
+```
+
+```{r}
+
+sd_of_variables <- apply(df[,2:12], 1, sd)
+mean_of_variables <- apply(df[,2:12],1, mean)
+
+CV<-(sd_of_variables/mean_of_variables*100)
+df$CV <- CV
+
+# Set the threshold for CV%
+threshold <- 30  # Change this value to your desired threshold
+
+# Filter the dataframe based on CV% using subset
+filtered_df <- subset(df, CV > threshold)
+
+
+# when i did this CV business i had nearly 4 times as many observations
+```
+
+```{r}
+# Calculate the standard deviation and mean for each protein across subjects
+sd_of_variables <- apply(df[,2:12], 1, sd, na.rm = TRUE)
+mean_of_variables <- apply(df[,2:12], 1, mean, na.rm = TRUE)
+
+# Calculate the coefficient of variation (CV%)
+CV <- (sd_of_variables / mean_of_variables) * 100
+
+# Add the CV% to the dataframe
+df$CV <- CV
+
+# Set the threshold for CV%
+threshold <- 30  # Change this value to your desired threshold
+
+
+# Ensure no missing values and no zeros for each protein (i.e., row)
+non_zero_proteins <- apply(df[, 2:(ncol(df) - 1)], 1, function(x) all(x > 0))
+
+# Filter the dataframe based on CV%, presence in all subjects, and non-zero values
+filtered_df <- subset(df, CV > threshold & non_zero_proteins)
+
+
+# Remove the 'CV' column from the filtered dataframe
+filtered_df <- subset(filtered_df, select = -CV)
+
+
+# Filter the dataframe based on CV% and presence in all subjects
+#filtered_df <- subset(df, CV > threshold & complete.cases(df[,2:12]))
+
+
+```
+
+
+
+```{r}
+# select the columns in dataset
+
+columns_to_exclude <- c(1, 13)
+selected_columns <- setdiff(seq_along(df), columns_to_exclude)
+
+# Perform PCA
+pca_result <- prcomp(df[, selected_columns], scale. = TRUE)
+
+# Summary of PCA
+summary(pca_result)
+
+
+#PCA of filtered_df
+
+pca_result_f <- prcomp(filtered_df[, selected_columns], scale. = TRUE)
+
+
+summary(pca_result_f)
+
+# Biplot of PCA
+#biplot(pca_result)
+
+
+
+```
+# Perform PCA
+pca_result <- prcomp(iris[, ], scale. = TRUE)  # Excluding the Species column (5th column)
+
+# Summary of PCA
+summary(pca_result)
+
+# Biplot of PCA
+biplot(pca_result)
+
+how many principle components should be used
+```{r}
+fviz_screeplot(pca_result_f)
+```
+
+scree plot elbow at 2
+
+
+
+```{r}
+
+library(factoextra) ## install this package first
+fviz_pca_biplot(pca_result, geom = "point") +
+      geom_point (alpha = 0.2)+
+  
+  labs(caption="
+PCA plot showing uniqueness of 11 individuals from 336 saliva proteins,based on 2 dimensions that explain 88% of the variation in protein weights")
+  
+
+
+
+fviz_pca_biplot(pca_result_f, geom = "point") +
+      geom_point (alpha = 0.2)+
+  
+  labs(caption="PCA biplot filtered")
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+pca transform the data
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(cluster)
+library(factoextra)
+library(RColorBrewer)
+
+# Define a custom color palette with 12 colors
+custom_palette <- brewer.pal(n = 11, name = "Set3")
+
+
+# Load your data
+# data <- read.csv("your_data.csv")
+#data <- iris[, -5]  # Using iris dataset as an example, excluding the species column
+
+# Standardize the data
+#data_scaled <- scale(data)
+
+# Perform PCA
+#pca_result <- prcomp(data_scaled, center = TRUE, scale. = TRUE)
+
+# Get the PCA-transformed data
+pca_data <- pca_result_f$x
+
+# Perform K-means clustering on PCA-transformed data
+set.seed(123)  # For reproducibility
+kmeans_result <- kmeans(pca_data[, 1:2], centers = 11)  
+
+# Add cluster information to the data
+pca_data <- data.frame(pca_data, Cluster = as.factor(kmeans_result$cluster))
+
+
+# Visualize clusters using fviz_cluster with custom color palette
+fviz_cluster(kmeans_result, data = pca_data[, 1:2], geom = "point", 
+             ellipse.type = "convex", 
+             palette = custom_palette, 
+             ggtheme = theme_minimal(), 
+             main = "Clusters after PCA")
+
+
+
+
+
+
+# Plot the clusters
+ggplot(pca_data, aes(x = PC1, y = PC2, color = Cluster)) +
+  geom_point(size = 3) +
+  labs(title = "Clusters after PCA", x = "Principal Component 1", y = "Principal Component 2") +
+  theme_minimal()
+
+```
+
+
+
+
+```{r}
+# Load necessary library
+library(dplyr)
+
+library(purrr)
+
+# Function to generate Poisson samples for each numeric data point in a data frame
+generate_poisson_samples <- function(df) {
+  # Identify numeric columns
+  numeric_cols <- df %>% select(where(is.numeric))
+  
+  # Apply rpois to each element of the numeric columns
+  poisson_samples <- numeric_cols %>% 
+    mutate(across(everything(), ~sapply(., function(lambda) rpois(1, lambda))))
+  
+  # Combine the non-numeric columns with the Poisson samples
+  result_df <- bind_cols(df %>% select(where(negate(is.numeric))), poisson_samples)
+  
+  return(result_df)
+}
+
+
+
+# Generate Poisson samples for each data point in the data frame
+poisson_samples_df <- generate_poisson_samples(filtered_df)
+
+# Print the original data frame and the resulting samples
+print("Original Data Frame:")
+print(filtered_df)
+print("Poisson Samples Data Frame:")
+print(poisson_samples_df)
+
+
+
+Mder<-poisson_samples_df$CG3 
+
+
+```
+
+
+
+
+
+
+
